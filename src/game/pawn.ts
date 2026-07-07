@@ -124,7 +124,7 @@ export class Pawn {
         this.rig.state = 'attack';
         this.rig.attackT = 0;
       }
-      this.heading = lerpAngle(this.heading, Math.atan2(-to.x, -to.z), damp(10, dt));
+      this.heading = lerpAngle(this.heading, Math.atan2(to.x, to.z), damp(10, dt));
       if (this.barkCd <= 0) {
         this.barkCd = 7 + rand() * 6;
         this.onBark?.(BARKS_COMBAT[Math.floor(rand() * BARKS_COMBAT.length)]);
@@ -141,7 +141,7 @@ export class Pawn {
         const s = d > 10 ? 8.6 : 5.0;
         vx = (to.x / d) * s;
         vz = (to.z / d) * s;
-        this.heading = lerpAngle(this.heading, Math.atan2(-to.x, -to.z), damp(8, dt));
+        this.heading = lerpAngle(this.heading, Math.atan2(to.x, to.z), damp(8, dt));
       }
       if (this.barkCd <= 0) {
         this.barkCd = 14 + rand() * 14;

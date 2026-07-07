@@ -145,8 +145,11 @@ export class HumanoidRig {
       const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.24, 5), flatMat('#5b3a21'));
       grip.position.y = 0.04;
       sword.add(grip);
-      sword.position.set(0, -0.74, 0.08);
-      sword.rotation.x = -0.25;
+      // Rest pose: blade tilted forward and slightly outward so it clears
+      // the torso, shoulder pads, and head.
+      sword.position.set(0, -0.74, 0.12);
+      sword.rotation.x = 0.55;
+      sword.rotation.z = 0.12;
       this.armR.add(sword);
       this.weaponTip.position.set(0, 1.35, 0);
       sword.add(this.weaponTip);
@@ -170,8 +173,8 @@ export class HumanoidRig {
       headM.position.y = 1.05;
       headM.castShadow = true;
       club.add(headM);
-      club.position.set(0, -0.7, 0.06);
-      club.rotation.x = -0.3;
+      club.position.set(0, -0.7, 0.1);
+      club.rotation.x = 0.55;
       this.armR.add(club);
       this.weaponTip.position.set(0, 1.1, 0);
       club.add(this.weaponTip);
@@ -316,8 +319,8 @@ export function makeTroll(): { root: THREE.Group; parts: TrollParts } {
   clubHead.position.y = 3.0;
   clubHead.castShadow = true;
   club.add(clubHead);
-  club.position.set(0, -3.1, 0.3);
-  club.rotation.x = -0.4;
+  club.position.set(0, -3.1, 0.4);
+  club.rotation.x = 0.5;
   armR.add(club);
 
   const makeLeg = (side: 1 | -1): THREE.Group => {

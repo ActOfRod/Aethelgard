@@ -22,7 +22,8 @@ export class Player {
   rig: HumanoidRig;
   pos = new THREE.Vector3(-40, 0, 22);
   vel = new THREE.Vector3();
-  heading = Math.PI; // facing direction of the model
+  /** Yaw of the model; its front faces (sin(heading), cos(heading)). */
+  heading = 0;
   hp = 100;
   maxHp = 100;
   sp = 100;
@@ -109,10 +110,11 @@ export class Player {
     const sprinting = input.down('ShiftLeft') && moving && this.sp > 1;
     const speed = sprinting ? SPRINT : WALK;
 
+    // Camera forward is (-sin(yaw), -cos(yaw)); right is (cos(yaw), -sin(yaw)).
     const sin = Math.sin(camYaw);
     const cos = Math.cos(camYaw);
-    let dx = ix * cos - iz * sin;
-    let dz = ix * sin + iz * cos;
+    let dx = ix * cos + iz * sin;
+    let dz = -ix * sin + iz * cos;
     const len = Math.hypot(dx, dz) || 1;
     dx /= len;
     dz /= len;
@@ -121,8 +123,8 @@ export class Player {
     if (input.justPressed('KeyQ') && this.onGround && this.sp >= 20 && this.rollTimer <= 0) {
       this.rollTimer = 0.42;
       this.sp -= 20;
-      const rx = moving ? dx : -Math.sin(this.heading);
-      const rz = moving ? dz : -Math.cos(this.heading);
+      const rx = moving ? dx : Math.sin(this.heading);
+      const rz = moving ? dz : Math.cos(this.heading);
       this.rollDir.set(rx, 0, rz);
     }
 
@@ -134,7 +136,7 @@ export class Player {
       // Deal damage at the moment the slash lands
       if (!this.attackHasHit && t > 0.42) {
         this.attackHasHit = true;
-        const dir = new THREE.Vector3(-Math.sin(this.heading), 0, -Math.cos(this.heading));
+        const dir = new THREE.Vector3(Math.sin(this.heading), 0, Math.cos(this.heading));
         this.onAttack?.({
           origin: this.pos.clone().add(new THREE.Vector3(0, 1, 0)),
           dir,
@@ -168,7 +170,7 @@ export class Player {
     } else if (moving && !inAttack) {
       this.vel.x = dx * speed;
       this.vel.z = dz * speed;
-      const targetHeading = Math.atan2(-dx, -dz);
+      const targetHeading = Math.atan2(dx, dz);
       this.heading = lerpAngle(this.heading, targetHeading, damp(14, dt));
     } else {
       const f = damp(inAttack ? 6 : 12, dt);
@@ -230,7 +232,7 @@ export class Player {
     this.rig.root.position.copy(this.pos);
     this.rig.root.rotation.y = this.heading;
     if (this.rollTimer > 0) {
-      this.rig.root.rotation.x = -(0.42 - this.rollTimer) * 10;
+      this.rig.root.rotation.x = (0.42 - this.rollTimer) * 10;
     } else {
       this.rig.root.rotation.x = 0;
     }
