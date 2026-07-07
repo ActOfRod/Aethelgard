@@ -5,9 +5,9 @@ export class Input {
   mouseDX = 0;
   mouseDY = 0;
   attackLight = false;
-  attackHeavy = false;
   pointerLocked = false;
 
+  private buttons = new Set<number>();
   private canvas: HTMLElement;
 
   constructor(canvas: HTMLElement) {
@@ -23,9 +23,11 @@ export class Input {
 
     canvas.addEventListener('mousedown', (e) => {
       if (!this.pointerLocked) return;
+      this.buttons.add(e.button);
       if (e.button === 0) this.attackLight = true;
-      if (e.button === 2) this.attackHeavy = true;
     });
+    document.addEventListener('mouseup', (e) => this.buttons.delete(e.button));
+    window.addEventListener('blur', () => this.buttons.clear());
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
     document.addEventListener('mousemove', (e) => {
@@ -47,6 +49,11 @@ export class Input {
     return this.keys.has(code);
   }
 
+  /** True while the right mouse button is held (guard). */
+  get blockHeld(): boolean {
+    return this.buttons.has(2);
+  }
+
   justPressed(code: string): boolean {
     return this.pressed.has(code);
   }
@@ -56,7 +63,6 @@ export class Input {
     this.mouseDX = 0;
     this.mouseDY = 0;
     this.attackLight = false;
-    this.attackHeavy = false;
     this.pressed.clear();
   }
 }

@@ -50,16 +50,20 @@ Open the printed URL (default `http://localhost:5173`) and click
 | --- | --- |
 | `WASD` | Move |
 | Mouse | Look (click to lock the pointer) |
-| Left / Right mouse | Light / heavy attack |
+| Left mouse | Light attack |
+| `E` | Heavy attack |
+| Right mouse (hold) | Block — absorbs 80% of a hit at a stamina cost |
+| `Q` | Dodge roll — invulnerable for the whole roll, cancels attacks |
 | `Shift` | Sprint |
 | `Space` | Jump — or latch onto the troll's back when close |
-| `Q` | Dodge roll |
 
 ## Gameplay
 
 - **The Arisen** — you, a sword-wielding hero with health and stamina.
-  Stamina fuels sprinting, attacks, jumps, and dodge rolls, and regenerates
-  when you ease off.
+  Stamina fuels sprinting, attacks, jumps, blocks, and dodge rolls, and
+  regenerates when you ease off. Blocking absorbs most of a hit but chips
+  stamina; the dodge roll grants full invulnerability while rolling. After
+  any hit you get a short grace window before you can be hurt again.
 - **Idris, your pawn** — an AI companion who follows you, fights beside you,
   offers advice, and picks herself back up when felled.
 - **Goblin camps** — packs of goblins roam the valley. The opening quest asks

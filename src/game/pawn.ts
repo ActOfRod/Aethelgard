@@ -28,8 +28,8 @@ const BARKS_TROLL = [
 export class Pawn {
   rig: HumanoidRig;
   pos = new THREE.Vector3(-37, 0, 24);
-  hp = 80;
-  maxHp = 80;
+  hp = 160;
+  maxHp = 160;
   dead = false;
 
   private heading = 0;

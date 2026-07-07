@@ -16,7 +16,7 @@ export interface HumanoidColors {
   weapon?: 'sword' | 'staff' | 'club' | 'none';
 }
 
-export type AnimState = 'idle' | 'move' | 'attack' | 'heavy' | 'hurt' | 'dead' | 'climb';
+export type AnimState = 'idle' | 'move' | 'attack' | 'heavy' | 'hurt' | 'dead' | 'climb' | 'block';
 
 /**
  * A stylized low-poly humanoid assembled from primitives with pivots at the
@@ -31,6 +31,9 @@ export class HumanoidRig {
   private legL: THREE.Group;
   private legR: THREE.Group;
   weaponTip = new THREE.Object3D();
+  private weapon: THREE.Group | null = null;
+  private weaponRest = new THREE.Euler();
+  private trail: THREE.Mesh | null = null;
 
   /** 0..1 progress of the current attack, driven externally. */
   attackT = 0;
@@ -153,6 +156,8 @@ export class HumanoidRig {
       this.armR.add(sword);
       this.weaponTip.position.set(0, 1.35, 0);
       sword.add(this.weaponTip);
+      this.weapon = sword;
+      this.weaponRest.copy(sword.rotation);
     } else if (colors.weapon === 'staff') {
       const staff = new THREE.Group();
       const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 1.9, 5), flatMat('#6b4726'));
@@ -178,6 +183,27 @@ export class HumanoidRig {
       this.armR.add(club);
       this.weaponTip.position.set(0, 1.1, 0);
       club.add(this.weaponTip);
+      this.weapon = club;
+      this.weaponRest.copy(club.rotation);
+    }
+
+    // Slash trail: a horizontal arc that flashes in front during the swing
+    if (this.weapon) {
+      const arc = 2.3;
+      const trailGeo = new THREE.RingGeometry(0.55, 2.0, 22, 1, Math.PI * 1.5 - arc / 2, arc);
+      const trailMat = new THREE.MeshBasicMaterial({
+        color: '#ffe9a8',
+        transparent: true,
+        opacity: 0,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+      this.trail = new THREE.Mesh(trailGeo, trailMat);
+      this.trail.rotation.x = -Math.PI / 2 + 0.18;
+      this.trail.position.set(0, 1.15, 0.3);
+      this.trail.visible = false;
+      this.root.add(this.trail);
     }
 
     this.root.add(this.torso, this.legL, this.legR);
@@ -227,6 +253,50 @@ export class HumanoidRig {
       this.armR.rotation.z = -0.25 * heavy;
       this.armL.rotation.x = -swing * 0.6 - 0.3;
       this.torso.rotation.y = lerp(0.35, -0.4, clamp((p - 0.3) / 0.3, 0, 1)) * heavy;
+
+      // Wrist: cock the blade back on the wind-up, whip it forward through
+      // the slash so the weapon extends into the strike instead of riding
+      // stiffly on the arm.
+      if (this.weapon) {
+        let wrist: number;
+        if (p < 0.35) {
+          wrist = lerp(this.weaponRest.x, -0.7 * heavy, p / 0.35);
+        } else if (p < 0.6) {
+          wrist = lerp(-0.7 * heavy, 1.7, (p - 0.35) / 0.25);
+        } else {
+          wrist = lerp(1.7, this.weaponRest.x, (p - 0.6) / 0.4);
+        }
+        this.weapon.rotation.x = wrist;
+        this.weapon.rotation.z = this.weaponRest.z;
+      }
+
+      // Slash trail flashes and sweeps during the strike window
+      if (this.trail) {
+        const mat = this.trail.material as THREE.MeshBasicMaterial;
+        if (p > 0.36 && p < 0.85) {
+          const f = 1 - (p - 0.36) / 0.49;
+          this.trail.visible = true;
+          mat.opacity = 0.95 * f;
+          const s = heavy > 1 ? 1.5 : 1;
+          this.trail.scale.setScalar(s);
+          this.trail.rotation.z = (p - 0.36) * 2.4;
+        } else {
+          this.trail.visible = false;
+          mat.opacity = 0;
+        }
+      }
+    } else if (this.state === 'block') {
+      // Guard: blade held horizontally across the body
+      this.armR.rotation.x = -1.15;
+      this.armR.rotation.z = 0.55;
+      this.armL.rotation.x = -0.5;
+      this.torso.rotation.x = 0.08;
+      this.torso.rotation.y = -0.25;
+      if (this.weapon) {
+        this.weapon.rotation.x = 1.5;
+        this.weapon.rotation.z = 0.5;
+      }
+      if (this.trail) this.trail.visible = false;
     } else if (this.state === 'climb') {
       this.armL.rotation.x = -2.6 + Math.sin(t * 3) * 0.15;
       this.armR.rotation.x = -2.6 - Math.sin(t * 3) * 0.15;
@@ -242,6 +312,11 @@ export class HumanoidRig {
       this.armR.rotation.x = swing * 0.7 - 0.06;
       this.armR.rotation.z = 0;
       this.torso.rotation.y = 0;
+      if (this.weapon) {
+        this.weapon.rotation.x = this.weaponRest.x;
+        this.weapon.rotation.z = this.weaponRest.z;
+      }
+      if (this.trail) this.trail.visible = false;
     }
   }
 }
