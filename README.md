@@ -10,6 +10,32 @@ procedurally from primitives at runtime; there are no binary assets.
 
 ## Play
 
+### Desktop app (recommended)
+
+The game ships as a standalone Electron app — a real window with no browser
+chrome, background throttling disabled, and the high-performance GPU
+requested.
+
+```bash
+npm install
+npm run app          # build + launch the desktop app
+```
+
+To produce a distributable executable for your platform:
+
+```bash
+npm run dist:win     # Windows: single-file portable .exe (no installer needed)
+npm run dist:linux   # Linux:   AppImage
+npm run dist:mac     # macOS:   .dmg (must be run on a Mac)
+```
+
+Output lands in `release/`. The Windows portable exe is a single file — copy
+it anywhere and double-click. There is also a GitHub Actions workflow
+(`.github/workflows/build-app.yml`) that builds all three platforms — run it
+from the Actions tab or push a `v*` tag, then download the artifacts.
+
+### Browser
+
 ```bash
 npm install
 npm run dev
@@ -63,6 +89,7 @@ src/
 ## Build
 
 ```bash
-npm run build    # type-checks then bundles to dist/
-npm run preview  # serves the production build
+npm run build    # type-checks then bundles the web build to dist/
+npm run preview  # serves the production web build
+npm run dist:*   # packages the desktop executable (see "Play" above)
 ```
