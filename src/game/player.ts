@@ -24,12 +24,13 @@ export class Player {
   vel = new THREE.Vector3();
   /** Yaw of the model; its front faces (sin(heading), cos(heading)). */
   heading = 0;
-  hp = 100;
-  maxHp = 100;
+  hp = 250;
+  maxHp = 250;
   sp = 100;
   maxSp = 100;
   onGround = true;
   dead = false;
+  blocking = false;
 
   /** Set when climbing the troll. */
   climbing = false;
@@ -40,6 +41,7 @@ export class Player {
   private attackHeavy = false;
   private attackHasHit = false;
   private hurtTimer = 0;
+  private invulnTimer = 0;
   private rollTimer = 0;
   private rollDir = new THREE.Vector3();
 
@@ -67,15 +69,31 @@ export class Player {
     return this.attackTimer > 0;
   }
 
-  takeDamage(amount: number): void {
-    if (this.dead || this.rollTimer > 0) return;
-    this.hp -= amount;
-    this.hurtTimer = 0.35;
+  /**
+   * Apply incoming damage, honouring dodge i-frames, post-hit invulnerability
+   * and blocking. Returns the damage actually dealt (0 if fully avoided).
+   */
+  takeDamage(amount: number): number {
+    if (this.dead || this.rollTimer > 0 || this.invulnTimer > 0) return 0;
+
+    let dealt = amount;
+    if (this.blocking && this.sp > 0) {
+      // A raised guard absorbs 80% of the blow but chips stamina
+      dealt = Math.max(1, Math.round(amount * 0.2));
+      this.sp = Math.max(0, this.sp - 14);
+      this.hurtTimer = 0.12;
+    } else {
+      this.hurtTimer = 0.35;
+    }
+
+    this.hp -= dealt;
+    this.invulnTimer = 0.5;
     if (this.hp <= 0) {
       this.hp = 0;
       this.dead = true;
       this.rig.state = 'dead';
     }
+    return dealt;
   }
 
   update(dt: number, input: Input, camYaw: number): void {
@@ -87,9 +105,11 @@ export class Player {
 
     this.hurtTimer = Math.max(0, this.hurtTimer - dt);
     this.rollTimer = Math.max(0, this.rollTimer - dt);
+    this.invulnTimer = Math.max(0, this.invulnTimer - dt);
 
     if (this.climbing) {
       // Movement is externally controlled while latched onto the troll
+      this.blocking = false;
       this.rig.state = 'climb';
       this.rig.update(dt);
       this.rig.root.position.copy(this.pos);
@@ -107,8 +127,12 @@ export class Player {
     if (input.down('KeyD')) ix += 1;
     const moving = ix !== 0 || iz !== 0;
 
-    const sprinting = input.down('ShiftLeft') && moving && this.sp > 1;
-    const speed = sprinting ? SPRINT : WALK;
+    // ---- guard (hold RMB): big damage reduction, slow strafing movement
+    this.blocking =
+      input.blockHeld && this.onGround && this.attackTimer <= 0 && this.rollTimer <= 0;
+
+    const sprinting = input.down('ShiftLeft') && moving && this.sp > 1 && !this.blocking;
+    const speed = this.blocking ? WALK * 0.35 : sprinting ? SPRINT : WALK;
 
     // Camera forward is (-sin(yaw), -cos(yaw)); right is (cos(yaw), -sin(yaw)).
     const sin = Math.sin(camYaw);
@@ -119,10 +143,12 @@ export class Player {
     dx /= len;
     dz /= len;
 
-    // ---- dodge roll
-    if (input.justPressed('KeyQ') && this.onGround && this.sp >= 20 && this.rollTimer <= 0) {
+    // ---- dodge roll: i-frames for its whole duration, cancels attacks
+    if (input.justPressed('KeyQ') && this.onGround && this.sp >= 15 && this.rollTimer <= 0) {
       this.rollTimer = 0.42;
-      this.sp -= 20;
+      this.sp -= 15;
+      this.attackTimer = 0; // roll cancels a swing
+      this.blocking = false;
       const rx = moving ? dx : Math.sin(this.heading);
       const rz = moving ? dz : Math.cos(this.heading);
       this.rollDir.set(rx, 0, rz);
@@ -147,8 +173,13 @@ export class Player {
         });
       }
       if (this.attackTimer <= 0) this.rig.state = 'idle';
-    } else if ((input.attackLight || input.attackHeavy) && this.onGround && this.rollTimer <= 0) {
-      const heavy = input.attackHeavy;
+    } else if (
+      (input.attackLight || input.justPressed('KeyE')) &&
+      this.onGround &&
+      this.rollTimer <= 0 &&
+      !this.blocking
+    ) {
+      const heavy = input.justPressed('KeyE');
       const cost = heavy ? 22 : 10;
       if (this.sp >= cost) {
         this.sp -= cost;
@@ -170,8 +201,11 @@ export class Player {
     } else if (moving && !inAttack) {
       this.vel.x = dx * speed;
       this.vel.z = dz * speed;
-      const targetHeading = Math.atan2(dx, dz);
-      this.heading = lerpAngle(this.heading, targetHeading, damp(14, dt));
+      // While guarding, keep facing steady and strafe instead of turning
+      if (!this.blocking) {
+        const targetHeading = Math.atan2(dx, dz);
+        this.heading = lerpAngle(this.heading, targetHeading, damp(14, dt));
+      }
     } else {
       const f = damp(inAttack ? 6 : 12, dt);
       this.vel.x -= this.vel.x * f;
@@ -216,17 +250,18 @@ export class Player {
       this.onGround = false;
     }
 
-    // ---- stamina
+    // ---- stamina (guard slows regen but doesn't drain passively)
     if (sprinting) this.sp -= dt * 12;
-    else this.sp += dt * (moving ? 10 : 18);
+    else this.sp += dt * (this.blocking ? 6 : moving ? 10 : 18);
     this.sp = clamp(this.sp, 0, this.maxSp);
-    this.hp = clamp(this.hp + dt * 0.8, 0, this.maxHp); // slow regen
+    this.hp = clamp(this.hp + dt * 1.2, 0, this.maxHp); // slow regen
 
     // ---- drive rig
     const hSpeed = Math.hypot(this.vel.x, this.vel.z);
     this.rig.moveSpeed = clamp(hSpeed / SPRINT, 0, 1);
     if (!inAttack) {
-      this.rig.state = this.hurtTimer > 0 ? 'hurt' : hSpeed > 0.5 ? 'move' : 'idle';
+      this.rig.state =
+        this.hurtTimer > 0 ? 'hurt' : this.blocking ? 'block' : hSpeed > 0.5 ? 'move' : 'idle';
     }
     this.rig.update(dt);
     this.rig.root.position.copy(this.pos);

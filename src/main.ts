@@ -112,8 +112,10 @@ const GOBLIN_CAMPS: [number, number][] = [
 for (const [x, z] of GOBLIN_CAMPS) {
   const g = new Goblin(scene, x, z);
   g.onHitPlayer = (dmg) => {
-    player.takeDamage(dmg);
-    hud.damageNumber(player.pos.clone().add(new THREE.Vector3(0, 1.6, 0)), dmg, camera, 'player-hurt');
+    const dealt = player.takeDamage(dmg);
+    if (dealt > 0) {
+      hud.damageNumber(player.pos.clone().add(new THREE.Vector3(0, 1.6, 0)), dealt, camera, 'player-hurt');
+    }
   };
   goblins.push(g);
 }
@@ -125,8 +127,10 @@ troll.onRoar = () => {
 };
 troll.onHitPlayer = (dmg, radius, origin) => {
   if (player.pos.distanceTo(origin) < radius) {
-    player.takeDamage(dmg);
-    hud.damageNumber(player.pos.clone().add(new THREE.Vector3(0, 1.6, 0)), dmg, camera, 'player-hurt');
+    const dealt = player.takeDamage(dmg);
+    if (dealt > 0) {
+      hud.damageNumber(player.pos.clone().add(new THREE.Vector3(0, 1.6, 0)), dealt, camera, 'player-hurt');
+    }
   }
   if (pawn.pos.distanceTo(origin) < radius) pawn.takeDamage(dmg);
 };
@@ -312,10 +316,12 @@ function makeOverlay(title: string, subtitle: string, button: string, death = fa
         : `<div class="controls">
       <b>WASD</b><span>Move</span>
       <b>MOUSE</b><span>Look</span>
-      <b>LMB / RMB</b><span>Light / Heavy attack</span>
+      <b>LMB</b><span>Light attack</span>
+      <b>E</b><span>Heavy attack</span>
+      <b>RMB hold</b><span>Block</span>
+      <b>Q</b><span>Dodge roll</span>
       <b>SHIFT</b><span>Sprint</span>
       <b>SPACE</b><span>Jump · Climb</span>
-      <b>Q</b><span>Dodge roll</span>
     </div>`
     }
   `;
@@ -380,6 +386,7 @@ declare global {
       troll: Troll;
       goblins: Goblin[];
       pawn: Pawn;
+      input: Input;
       setCam: (yaw: number, pitch: number) => void;
     };
   }
@@ -389,6 +396,7 @@ window.__game = {
   troll,
   goblins,
   pawn,
+  input,
   setCam: (yaw: number, pitch: number) => {
     camYaw = yaw;
     camPitch = pitch;
