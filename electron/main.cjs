@@ -7,6 +7,12 @@ app.commandLine.appendSwitch('disable-frame-rate-limit-in-background');
 app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.commandLine.appendSwitch('enable-zero-copy');
 
+// Fallback: on machines without a usable GPU (VMs, headless servers, old
+// drivers) Chromium blocklists WebGL2 and the game would fatally fail with
+// "WebGL2 blocklisted". This permits the SwiftShader software renderer as a
+// last resort — it has no effect on machines with a working GPU.
+app.commandLine.appendSwitch('enable-unsafe-swiftshader');
+
 const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 
 function createWindow() {
