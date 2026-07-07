@@ -104,7 +104,7 @@ export class Goblin {
         this.rig.state = 'attack';
         this.rig.attackT = 0;
       }
-      const th = Math.atan2(-toPlayer.x, -toPlayer.z);
+      const th = Math.atan2(toPlayer.x, toPlayer.z);
       this.heading = lerpAngle(this.heading, th, damp(10, dt));
     } else {
       // wander near home
@@ -118,7 +118,7 @@ export class Goblin {
       speed = 1.3;
       vx = Math.sin(this.wanderAngle) * speed;
       vz = Math.cos(this.wanderAngle) * speed;
-      this.heading = lerpAngle(this.heading, Math.atan2(-vx, -vz), damp(6, dt));
+      this.heading = lerpAngle(this.heading, Math.atan2(vx, vz), damp(6, dt));
     }
 
     const nx = this.pos.x + vx * dt;
@@ -283,7 +283,7 @@ export class Troll {
         if (t > 0.62 && t < 0.7 && !target.dead) {
           const impact = this.pos
             .clone()
-            .add(new THREE.Vector3(-Math.sin(this.heading) * 3.6, 0, -Math.cos(this.heading) * 3.6));
+            .add(new THREE.Vector3(Math.sin(this.heading) * 3.6, 0, Math.cos(this.heading) * 3.6));
           this.onHitPlayer?.(30, 4.2, impact);
         }
       } else {
@@ -313,7 +313,7 @@ export class Troll {
         this.attackAnim = 1.4;
         this.attackKind = rand() > 0.5 ? 'smash' : 'sweep';
       }
-      const th = Math.atan2(-toPlayer.x, -toPlayer.z);
+      const th = Math.atan2(toPlayer.x, toPlayer.z);
       this.heading = lerpAngle(this.heading, th, damp(3.5, dt));
     } else if (playerClimbing && this.shakeTimer > 0) {
       // thrash

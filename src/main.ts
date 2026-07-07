@@ -270,9 +270,9 @@ function updateClimb(dt: number): void {
 
   hud.setPrompt(null);
 
-  // stick to the troll's back
+  // stick to the troll's back, facing into it
   player.pos.copy(troll.latchPoint);
-  player.heading = troll.heading + Math.PI;
+  player.heading = troll.heading;
 
   climbShakeGrace = Math.max(0, climbShakeGrace - dt);
 
@@ -287,7 +287,8 @@ function updateClimb(dt: number): void {
 
 function detach(thrown = false): void {
   player.climbing = false;
-  const away = new THREE.Vector3(Math.sin(troll.heading), 0, Math.cos(troll.heading));
+  // Push away from the troll's back (opposite its facing)
+  const away = new THREE.Vector3(-Math.sin(troll.heading), 0, -Math.cos(troll.heading));
   player.pos.add(away.multiplyScalar(2.5));
   player.vel.set(away.x * (thrown ? 9 : 3), thrown ? 7 : 3, away.z * (thrown ? 9 : 3));
   if (thrown) {
