@@ -1,0 +1,32 @@
+appId: com.aethelgard.game
+productName: Aethelgard
+copyright: Copyright © 2026
+
+files:
+  - dist/**/*
+  - electron/**/*
+  - package.json
+
+directories:
+  output: release
+
+compression: normal
+
+# A single-file portable executable — double-click and play, no installer.
+win:
+  target:
+    - target: portable
+      arch: [x64]
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+  category: Game
+  maintainer: ActOfRod
+
+mac:
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+  category: public.app-category.games
